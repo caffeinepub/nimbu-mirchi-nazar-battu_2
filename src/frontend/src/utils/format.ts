@@ -39,6 +39,7 @@ export function formatDate(ts: bigint | number): string {
     day: "numeric",
     month: "short",
     year: "numeric",
+    timeZone: "Asia/Kolkata",
   });
 }
 
@@ -54,6 +55,7 @@ export function formatDayDate(ts: bigint | number): string {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: "Asia/Kolkata",
   });
 }
 

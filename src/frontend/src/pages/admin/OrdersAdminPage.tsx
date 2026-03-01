@@ -220,15 +220,23 @@ function OrderAdminCard({
           <p className="text-xs text-muted-foreground">
             {formatDate(order.createdAt)}
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[200px]">
-            {order.addressLine}, {order.pincode}
-          </p>
+          {/* Customer Name */}
+          {customer?.name && (
+            <p className="text-sm font-semibold text-foreground mt-1">
+              👤 {customer.name}
+            </p>
+          )}
+          {/* Phone */}
           {customer?.phone && (
             <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
               <Phone className="h-3 w-3 shrink-0" />
               {customer.phone}
             </p>
           )}
+          {/* Address */}
+          <p className="text-xs text-muted-foreground mt-0.5">
+            📍 {order.addressLine}, {order.pincode}
+          </p>
         </div>
         <div className="text-right">
           <Badge

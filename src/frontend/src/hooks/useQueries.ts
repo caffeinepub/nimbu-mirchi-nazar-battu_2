@@ -458,14 +458,55 @@ export function useDashboardStats() {
 }
 
 export function useNextSaturday() {
-  const { actor, isFetching } = useActor();
   return useQuery({
     queryKey: ["next-saturday"],
     queryFn: async () => {
-      if (!actor) return null;
-      return actor.getNextSaturday();
+      // Calculate next Saturday in IST (Asia/Kolkata = UTC+5:30)
+      const now = new Date();
+      const istFormatter = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kolkata",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        weekday: "long",
+      });
+      const parts = istFormatter.formatToParts(now);
+      const year = Number.parseInt(parts.find((p) => p.type === "year")!.value);
+      const month =
+        Number.parseInt(parts.find((p) => p.type === "month")!.value) - 1;
+      const day = Number.parseInt(parts.find((p) => p.type === "day")!.value);
+      const weekday = parts.find((p) => p.type === "weekday")!.value;
+
+      const dayMap: Record<string, number> = {
+        Sunday: 0,
+        Monday: 1,
+        Tuesday: 2,
+        Wednesday: 3,
+        Thursday: 4,
+        Friday: 5,
+        Saturday: 6,
+      };
+      const currentDayOfWeek = dayMap[weekday] ?? 0;
+
+      // Days until next Saturday (if today is Saturday, go to NEXT Saturday = +7)
+      const daysUntilSaturday =
+        currentDayOfWeek === 6 ? 7 : 6 - currentDayOfWeek;
+
+      // Create midnight IST of next Saturday
+      const istMidnight = new Date(
+        year,
+        month,
+        day + daysUntilSaturday,
+        0,
+        0,
+        0,
+        0,
+      );
+
+      // Return as nanoseconds (bigint) to stay compatible with existing code
+      return BigInt(istMidnight.getTime()) * BigInt(1_000_000);
     },
-    enabled: !!actor && !isFetching,
+    staleTime: 60_000,
   });
 }
 
