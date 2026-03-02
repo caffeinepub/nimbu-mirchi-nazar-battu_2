@@ -6,6 +6,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useNavigate } from "@tanstack/react-router";
 import {
   CalendarDays,
+  CheckCircle2,
   CreditCard,
   Loader2,
   MapPin,
@@ -22,6 +23,7 @@ import { PaymentMethod } from "../../backend.d";
 import type { OrderItem } from "../../backend.d";
 import { useCart } from "../../hooks/useCart";
 import {
+  type CartItem,
   useMyProfile,
   useNextSaturday,
   usePlaceOrder,
@@ -46,6 +48,13 @@ export function CartPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
     PaymentMethod.cod,
   );
+  const [confirmedOrder, setConfirmedOrder] = useState<null | {
+    id: bigint;
+    items: CartItem[];
+    total: number;
+    deliveryDate: bigint;
+    paymentMethod: PaymentMethod;
+  }>(null);
 
   const handlePlaceOrder = async () => {
     if (!addressLine.trim() || !pincode.trim() || !phone.trim()) {
@@ -64,6 +73,11 @@ export function CartPage() {
       price: item.price,
     }));
 
+    // Capture snapshot before mutating
+    const itemsSnapshot = [...items];
+    const totalSnapshot = totalPrice;
+    const paymentMethodSnapshot = paymentMethod;
+
     try {
       // Save phone to user profile so admin can see it in customer details
       if (phone.trim()) {
@@ -76,7 +90,7 @@ export function CartPage() {
           // Non-blocking -- still place the order even if profile update fails
         }
       }
-      await placeOrder.mutateAsync({
+      const result = await placeOrder.mutateAsync({
         items: orderItems,
         deliveryDate: nextSaturday,
         paymentMethod,
@@ -84,16 +98,101 @@ export function CartPage() {
         pincode,
       });
       clear();
-      toast.success(
-        paymentMethod === PaymentMethod.cod
-          ? "Order placed! See you Saturday. 🎉"
-          : "Order placed! Admin will share payment link shortly. 📱",
-      );
-      navigate({ to: "/orders" });
+      setConfirmedOrder({
+        id: result.id,
+        items: itemsSnapshot,
+        total: totalSnapshot,
+        deliveryDate: nextSaturday,
+        paymentMethod: paymentMethodSnapshot,
+      });
     } catch {
       toast.error("Failed to place order. Please try again.");
     }
   };
+
+  if (confirmedOrder) {
+    return (
+      <div
+        data-ocid="order_confirmation.success_state"
+        className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center"
+      >
+        {/* Large green check */}
+        <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-4">
+          <CheckCircle2 className="h-10 w-10 text-green-600" />
+        </div>
+        <h1 className="font-display text-2xl font-bold text-foreground mb-1">
+          Order Confirmed!
+        </h1>
+        <p className="text-muted-foreground text-sm mb-6">
+          Aapka order place ho gaya hai 🙏
+        </p>
+
+        {/* Order details card */}
+        <div className="bg-card border border-border rounded-2xl p-4 w-full max-w-sm mb-4 text-left space-y-3">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Order ID</span>
+            <span className="font-mono font-bold text-foreground">
+              #{confirmedOrder.id.toString()}
+            </span>
+          </div>
+          <div className="border-t border-border pt-3 space-y-1">
+            {confirmedOrder.items.map((item) => (
+              <div
+                key={item.productId.toString()}
+                className="flex justify-between text-sm"
+              >
+                <span className="text-foreground">
+                  {item.name} × {item.qty}
+                </span>
+                <span className="text-gold-700 font-semibold">
+                  {formatRupees(item.price * BigInt(item.qty))}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-border pt-3 flex justify-between font-bold text-foreground">
+            <span>Total</span>
+            <span className="text-gold-700">
+              {formatRupees(confirmedOrder.total)}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+            <CalendarDays className="h-4 w-4 text-green-700 shrink-0" />
+            <span className="text-sm text-green-800 font-medium">
+              🚚 Delivery: {formatDayDate(confirmedOrder.deliveryDate)}
+            </span>
+          </div>
+          <div
+            className={`text-xs px-3 py-2 rounded-xl ${
+              confirmedOrder.paymentMethod === PaymentMethod.cod
+                ? "bg-blue-50 text-blue-800"
+                : "bg-orange-50 text-orange-800"
+            }`}
+          >
+            {confirmedOrder.paymentMethod === PaymentMethod.cod
+              ? "💵 Cash on Delivery — delivery ke waqt payment karein"
+              : "🔗 Admin aapko payment link bhejenge jaldi"}
+          </div>
+        </div>
+
+        <div className="flex gap-3 w-full max-w-sm">
+          <Button
+            variant="outline"
+            onClick={() => navigate({ to: "/products" })}
+            className="flex-1"
+          >
+            Continue Shopping
+          </Button>
+          <Button
+            onClick={() => navigate({ to: "/orders" })}
+            className="flex-1 gold-gradient text-foreground border-0 font-semibold"
+          >
+            View Orders
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (items.length === 0 && step === 0) {
     return (

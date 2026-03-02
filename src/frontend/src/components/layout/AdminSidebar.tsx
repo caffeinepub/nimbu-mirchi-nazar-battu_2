@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useInternetIdentity } from "../../hooks/useInternetIdentity";
+import { useAllOrders } from "../../hooks/useQueries";
 
 const navItems = [
   { to: "/admin/dashboard", label: "Dashboard", Icon: LayoutDashboard },
@@ -32,6 +33,11 @@ export function AdminSidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const { pathname } = useRouterState({ select: (s) => s.location });
   const { clear } = useInternetIdentity();
+  const { data: allOrders } = useAllOrders();
+  const lastSeen = Number(
+    localStorage.getItem("nimbu_last_seen_orders") ?? "0",
+  );
+  const newOrdersCount = Math.max(0, (allOrders?.length ?? 0) - lastSeen);
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -55,6 +61,8 @@ export function AdminSidebar() {
         <ul className="space-y-0.5">
           {navItems.map(({ to, label, Icon }) => {
             const isActive = pathname.startsWith(to);
+            const isOrders = to === "/admin/orders";
+            const showBadge = isOrders && newOrdersCount > 0;
             return (
               <li key={to}>
                 <Link
@@ -69,7 +77,17 @@ export function AdminSidebar() {
                 >
                   <Icon className="h-4 w-4 shrink-0" />
                   <span className="text-sm font-medium">{label}</span>
-                  {isActive && <ChevronRight className="h-3 w-3 ml-auto" />}
+                  {showBadge && (
+                    <span
+                      data-ocid="admin_nav.orders_badge"
+                      className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center"
+                    >
+                      {newOrdersCount > 9 ? "9+" : newOrdersCount}
+                    </span>
+                  )}
+                  {isActive && !showBadge && (
+                    <ChevronRight className="h-3 w-3 ml-auto" />
+                  )}
                 </Link>
               </li>
             );

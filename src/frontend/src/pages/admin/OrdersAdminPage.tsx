@@ -10,7 +10,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Filter, IndianRupee, Loader2, Phone, XCircle } from "lucide-react";
 import { motion } from "motion/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { OrderStatus, PaymentMethod } from "../../backend.d";
 import type { Order, Product, User } from "../../backend.d";
@@ -49,6 +49,13 @@ export function OrdersAdminPage() {
   const cancelOrder = useCancelOrder();
 
   const [statusFilter, setStatusFilter] = useState("all");
+
+  // Mark all current orders as seen when this page is visited
+  useEffect(() => {
+    if (orders) {
+      localStorage.setItem("nimbu_last_seen_orders", String(orders.length));
+    }
+  }, [orders]);
 
   const filtered = (orders ?? []).filter((o) =>
     statusFilter === "all" ? true : o.status === statusFilter,

@@ -1,4 +1,6 @@
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from "@tanstack/react-router";
 import {
   Calendar,
   CalendarDays,
@@ -31,8 +33,14 @@ function tsToMs(ts: bigint | number): number {
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function DashboardPage() {
+  const navigate = useNavigate();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: orders } = useAllOrders();
+
+  const lastSeen = Number(
+    localStorage.getItem("nimbu_last_seen_orders") ?? "0",
+  );
+  const newOrdersCount = Math.max(0, (orders?.length ?? 0) - lastSeen);
 
   // Build weekly chart from real orders
   const weekData = WEEKDAYS.map((day) => ({
@@ -135,6 +143,35 @@ export function DashboardPage() {
           Welcome back! Here's your business at a glance.
         </p>
       </motion.div>
+
+      {/* New Orders Banner */}
+      {newOrdersCount > 0 && (
+        <motion.div
+          data-ocid="dashboard.new_orders_banner"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center justify-between mb-4"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🔔</span>
+            <div>
+              <p className="font-semibold text-orange-900 text-sm">
+                {newOrdersCount} naye order aaye hain!
+              </p>
+              <p className="text-xs text-orange-700">
+                Aapke pichle visit ke baad
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => navigate({ to: "/admin/orders" })}
+            className="bg-orange-500 hover:bg-orange-600 text-white border-0 text-xs"
+          >
+            Dekho
+          </Button>
+        </motion.div>
+      )}
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
